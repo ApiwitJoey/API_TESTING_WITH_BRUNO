@@ -1,0 +1,63 @@
+info:
+  name: Create Orders [Over Stock]
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/orders"
+  body:
+    type: json
+    data: |-
+      {
+        "itemId": 1,
+        "quantity": 100
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // data from menu
+        const menu = JSON.parse(bru.getEnvVar("menu"));
+
+        // get req
+        const Body = req.getBody();
+        const orderItemId = Body.itemId;
+        const orderQty = Body.quantity;
+
+        const expectedPrice = menu[orderItemId] * orderQty;
+
+        test("Order Creation Field Validation", function() {
+          const data = res.getBody();
+          
+          expect(data).to.have.property('orderId');
+          expect(data).to.have.property('status');
+          expect(data).to.have.property('totalPrice');
+          
+          expect(data.orderId).to.match(/^ORD-/);
+          expect(data.status).to.equal('created');
+        });
+
+        test("Check Price", function() {
+          const data = res.getBody();
+          
+          expect(data.totalPrice).to.equal(expectedPrice, `Bug Found! ID:${orderItemId} Price Should ${expectedPrice} But Get ${data.totalPrice}`);
+        });
+
+
+        test("Collect Order ID", function() {
+          const data = res.getBody();
+          if (data.orderId) {
+            bru.setEnvVar("orderId", data.orderId);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

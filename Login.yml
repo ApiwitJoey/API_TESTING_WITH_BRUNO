@@ -1,0 +1,49 @@
+info:
+  name: Login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "student",
+        "password": "hungry"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        let response = res.getBody()
+        const token = response.accessToken
+
+        bru.setEnvVar("token", token)
+
+        test("Login Field Validation", function() {
+          const data = res.getBody();
+          
+          // เช็กว่ามี Field ครบไหม
+          expect(data).to.have.property('accessToken');
+          expect(data).to.have.property('expiresIn');
+          
+          // เช็ก Data Type (กันเหนียว)
+          expect(data.accessToken).to.be.a('string');
+          expect(data.expiresIn).to.be.a('number');
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body
+      operator: isJson
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

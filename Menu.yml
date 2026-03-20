@@ -1,0 +1,52 @@
+info:
+  name: Menu
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/menu"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+        const menu = {};
+
+        data.forEach(item => {
+          menu[item.id] = item.price;
+        });
+
+        bru.setEnvVar("menu", JSON.stringify(menu));
+
+        test("Menu Items Validation", function() {
+          const data = res.getBody();
+          
+          expect(data).to.be.an('array');
+          
+          // เช็กตัวแรกในลิสต์ว่ามี Field ครบและถูกต้อง
+          if (data.length > 0) {
+            const item = data[0];
+            expect(item).to.have.all.keys('id', 'name', 'price', 'stock');
+            expect(item.id).to.be.a('number');
+            expect(item.price).to.be.a('number');
+            expect(item.stock).to.be.a('number');
+          }
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body
+      operator: isArray
+    - expression: res.body
+      operator: length
+      value: "2"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

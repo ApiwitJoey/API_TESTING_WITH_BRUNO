@@ -1,0 +1,27 @@
+info:
+  name: Get Orders [Over Stock]
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/orders/{{orderId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        test("Get Order Detail Validation", function() {
+          const data = res.getBody();
+          
+          expect(data.orderId).to.equal(bru.getEnvVar("orderId"));
+          expect(data).to.have.property('status');
+          expect(data).to.have.property('totalPrice');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
